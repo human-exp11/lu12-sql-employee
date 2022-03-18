@@ -75,22 +75,79 @@ function promptIntake() {
 }
 
 function viewDepartments() {
-
+  // select * from table tracker_db
+  let query = "SELECT * FROM department";
+  connection.query(query, function(err, res) {
+    if (err) throw err;
+    console.table(res);
+    promptIntake();
+  });
 }
 
 function viewRoles() {
-  
+    // select * from table in racker_db
+  let query = "SELECT * FROM role";
+  connection.query(query, function(err, res) {
+    if (err) throw err;
+    console.table(res);
+    promptIntake();
+  });
 }
 
 function viewEmployees() {
+      // select * from table in racker_db
+  let query = "SELECT * FROM employee";
+  connection.query(query, function(err, res) {
+    if (err) throw err;
+    console.table(res);
+    promptIntake();
+  });
   
 }
 
 function addDepartment() {
-  
-}
+  inquirer.prompt({
+    type: "input",
+    message: "Please enter the name of the department.",
+    name: "depName"
+
+}).then(function(answer){
+    connection.query("INSERT INTO department (name) VALUES (?)", [answer.depName] , function(err, res) {
+        if (err) throw err;
+        console.table(res)
+        promptIntake()
+})
+})
+};
+
+
 
 function  addRole() {
+  inquirer
+  .prompt([
+    {
+      type: "input",
+      message: "What is the name of the role?",
+      name: "roleName"
+    },
+    {
+      type: "input",
+      message: "What is the salary for this role?",
+      name: "roleSalary"
+    },
+    {
+      type: "input",
+      message: "What is the department ID number?",
+      name: "depID"
+    }
+  ])
+  .then(function(answer) {
+    connection.query("INSERT INTO role (title, salary, department_id) VALUES (?, ?, ?)", [answer.roleName, answer.roleSalary, answer.depID], function(err, res) {
+      if (err) throw err;
+      console.table(res);
+      promptIntake();
+    });
+  });
   
 }
 
@@ -100,4 +157,9 @@ function addEmployee() {
 
 function updateEmployee() {
   
+}
+
+function quit() {
+  connection.end();
+  process.exit();
 }
