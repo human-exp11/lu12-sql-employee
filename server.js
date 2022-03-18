@@ -1,8 +1,7 @@
-const mysql = require('mysql2');
-const inquirer = require('inquirer');
-const express = require('express');
-const cTable = require('console.table');
-
+const mysql = require("mysql2");
+const inquirer = require("inquirer");
+const express = require("express");
+const cTable = require("console.table");
 
 const PORT = process.env.PORT || 3003;
 const app = express();
@@ -11,25 +10,23 @@ const app = express();
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
-
 const db = mysql.createConnection(
-    {
-      host: 'localhost',
-      // MySQL username,
-      user: 'root',
-      // MySQL password
-      password: 'Lucaeverettdae11!',
-      database: 'tracker_db'
-    },
-    console.log(`Connected to the tracker_db database.`)
-  
+  {
+    host: "localhost",
+    // MySQL username,
+    user: "root",
+    // MySQL password
+    password: "Lucaeverettdae11!",
+    database: "tracker_db",
+  },
+  console.log(`Connected to the tracker_db database.`)
 );
 
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    promptIntake();
+  console.log(`Server running on port ${PORT}`);
+  promptIntake();
 });
-  
+
 function promptIntake() {
   inquirer
     .prompt({
@@ -43,22 +40,22 @@ function promptIntake() {
         "Add Role",
         "Add Employee",
         "Update Employee Role",
-        "Quit"
+        "Quit",
       ],
     })
-    .then(function(result) {
+    .then(function (result) {
       console.log("Options for: " + result.option);
 
       switch (result.option) {
         case "View All Departments":
-          viewDepartment();
+          viewDepartments();
           break;
-          case "View All Roles":
-            viewRoles();
-            break;
-            case "View All Employees":
-              viewEmployees();
-              break;
+        case "View All Roles":
+          viewRoles();
+          break;
+        case "View All Employees":
+          viewEmployees();
+          break;
         case "Add a Department":
           addDepartment();
           break;
@@ -75,4 +72,32 @@ function promptIntake() {
           quit();
       }
     });
+}
+
+function viewDepartments() {
+
+}
+
+function viewRoles() {
+  
+}
+
+function viewEmployees() {
+  
+}
+
+function addDepartment() {
+  
+}
+
+function  addRole() {
+  
+}
+
+function addEmployee() {
+  
+}
+
+function updateEmployee() {
+  
 }
