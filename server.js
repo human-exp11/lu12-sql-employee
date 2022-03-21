@@ -1,7 +1,11 @@
-const mysql = require("mysql2");
 const inquirer = require("inquirer");
 const express = require("express");
 const cTable = require("console.table");
+const path = require("path");
+
+const lib_dir = path.resolve(__dirname, "./lib");
+const choose = require(`${lib_dir}/choose.js`);
+const connection = require(`${lib_dir}/mysql.js`);
 
 const PORT = process.env.PORT || 3003;
 const app = express();
@@ -10,43 +14,19 @@ const app = express();
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
-const db = mysql.createConnection(
-  {
-    host: "localhost",
-    // MySQL username,
-    user: "root",
-    // MySQL password
-    password: "Lucaeverettdae11!",
-    database: "tracker_db",
-  },
-  console.log(`Connected to the tracker_db database.`)
-);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  promptIntake();
+  init();
 });
 
-function promptIntake() {
-  inquirer
-    .prompt({
-      type: "list",
-      message: "What would you like to do?",
-      choices: [
-        "View All Departments",
-        "View All Roles",
-        "View All Employees",
-        "Add Department",
-        "Add Role",
-        "Add Employee",
-        "Update Employee Role",
-        "Quit",
-      ],
-    })
-    .then(function (result) {
-      console.log("Options for: " + result.option);
-
-      switch (result.option) {
+//initialize function
+const init = async () => {
+  try {
+    //prompt user with required info from choose.js
+    const data = await inquirer.prompt(choose()[0]);
+      //switch case to determine user's next prompts
+      switch (data.option) {
         case "View All Departments":
           viewDepartments();
           break;
@@ -69,9 +49,12 @@ function promptIntake() {
           updateEmployee();
           break;
         default:
-          quit();
+          connection.end();
+          break;
       }
-    });
+    } catch(err) {
+      console.log(err);
+  };
 };
 
 function viewDepartments() {
@@ -80,7 +63,7 @@ function viewDepartments() {
   connection.query(query, [answer.name], function(err, res) {
     if (err) throw err;
     console.table(res);
-    promptIntake();
+    init();
   });
 };
 
@@ -90,7 +73,7 @@ function viewRoles() {
   connection.query(query, [answer.title], function(err, res) {
     if (err) throw err;
     console.table(res);
-    promptIntake();
+    init();
   });
 };
 
@@ -100,7 +83,7 @@ function viewEmployees() {
   connection.query(query,[answer.id], function(err, res) {
     if (err) throw err;
     console.table(res);
-    promptIntake();
+    init();
   });
 };
 
@@ -114,7 +97,7 @@ function addDepartment() {
     connection.query("INSERT INTO department (name) VALUES (?)", [answer.depName] , function(err, res) {
         if (err) throw err;
         console.table(res)
-        promptIntake()
+        init()
 })
 })
 };
@@ -144,7 +127,7 @@ function  addRole() {
     connection.query("INSERT INTO role (title, salary, department_id) VALUES (?, ?, ?)", [answer.roleName, answer.roleSalary, answer.depID], function(err, res) {
       if (err) throw err;
       console.table(res);
-      promptIntake();
+      init();
     });
   });
   
@@ -178,7 +161,7 @@ function addEmployee() {
       connection.query("INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)", [answer.fName, answer.lName, answer.roleID, answer.managerID], function(err, res) {
         if (err) throw err;
         console.table(res);
-        promptIntake();
+        init();
       });
     });
   
@@ -203,12 +186,14 @@ function updateEmployee() {
       connection.query('UPDATE employee SET role_id=? WHERE employee_id= ?',[answer.updateRole, answer.employeeUpdate],function(err, res) {
         if (err) throw err;
         console.table(res);
-        promptIntake();
+        init();
       });
     });
 };
 
-function quit() {
-  connection.end();
-  process.exit();
-};
+
+//initialization of app
+init();
+
+//export init function
+module.exports.init = init;
