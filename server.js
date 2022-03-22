@@ -1,24 +1,10 @@
 const inquirer = require("inquirer");
-const express = require("express");
 const cTable = require("console.table");
 const path = require("path");
 
 const lib_dir = path.resolve(__dirname, "./lib");
-const choose = require(`${lib_dir}/choose.js`);
-const connection = require(`${lib_dir}/mysql.js`);
-
-const PORT = process.env.PORT || 3003;
-const app = express();
-
-// Express middleware
-app.use(express.urlencoded({ extended: false }));
-app.use(express.json());
-
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  init();
-});
+const choose = require("./lib/choose");
+const connection = require("./lib/mysql");
 
 //initialize function
 const init = async () => {
@@ -26,7 +12,7 @@ const init = async () => {
     //prompt user with required info from choose.js
     const data = await inquirer.prompt(choose()[0]);
       //switch case to determine user's next prompts
-      switch (data.option) {
+      switch (data.choose) {
         case "View All Departments":
           viewDepartments();
           break;
@@ -36,20 +22,19 @@ const init = async () => {
         case "View All Employees":
           viewEmployees();
           break;
-        case "Add a Department":
+        case "Add Department":
           addDepartment();
           break;
-        case "Add a Role":
+        case "Add Role":
           addRole();
           break;
-        case "Add an Employee":
+        case "Add Employee":
           addEmployee();
           break;
-        case "Update an Employee Role":
+        case "Update Employee Role":
           updateEmployee();
           break;
         default:
-          connection.end();
           break;
       }
     } catch(err) {
@@ -58,29 +43,30 @@ const init = async () => {
 };
 
 function viewDepartments() {
-  // select *from table tracker_db
-  let query = "SELECT name FROM department";
-  connection.query(query, [answer.name], function(err, res) {
+  // select from table tracker_db
+  let query = "SELECT name, id FROM department";
+  connection.query(query, function(err, res) {
     if (err) throw err;
     console.table(res);
-    init();
+   init();
   });
 };
 
-function viewRoles() {
-    // select from table in racker_db
-  let query = "SELECT title FROM role";
-  connection.query(query, [answer.title], function(err, res) {
-    if (err) throw err;
-    console.table(res);
-    init();
+const viewRoles = () => {
+  connection.query('SELECT title, salary, name FROM role INNER JOIN department ON role.department_id = department.id ORDER BY title ASC;', (err, res) => {
+      if (err) throw err;
+      //Display data
+      console.log('\n');
+      console.table(['Role', 'Salary', 'Department'], res.map(role => [role.title, role.salary, role.name]));
+      console.log('\n');
+     init();
   });
-};
+}
 
 function viewEmployees() {
       // select from table in racker_db
-  let query = "SELECT id, CONCAT(first_name, '' '', last_name) FROM employee";
-  connection.query(query,[answer.id], function(err, res) {
+  let query = "SELECT employee.first_name, employee.last_name,  role.title, role.salary, department.name, CONCAT(manager.first_name, ' ', manager.last_name) AS manager  FROM employee LEFT JOIN role ON employee.role_id = role.id LEFT JOIN department ON role.department_id = department.id LEFT JOIN employee manager ON employee.manager_id = manager.id";
+  connection.query(query, function(err, res) {
     if (err) throw err;
     console.table(res);
     init();
@@ -96,7 +82,7 @@ function addDepartment() {
 }).then(function(answer){
     connection.query("INSERT INTO department (name) VALUES (?)", [answer.depName] , function(err, res) {
         if (err) throw err;
-        console.table(res)
+        console.log("Added."),
         init()
 })
 })
@@ -104,7 +90,8 @@ function addDepartment() {
 
 
 
-function  addRole() {
+async function  addRole() {
+  const depts = await connection.promise().query("SELECT id AS value, name AS name FROM department")
   inquirer
   .prompt([
     {
@@ -118,8 +105,9 @@ function  addRole() {
       name: "roleSalary"
     },
     {
-      type: "input",
-      message: "What is the department ID number?",
+      type: "list",
+      message: "Choose Department",
+      choices: depts[0],
       name: "depID"
     }
   ])
@@ -133,7 +121,9 @@ function  addRole() {
   
 };
 
-function addEmployee() {
+async function addEmployee() {
+  const role = await connection.promise().query("SELECT id AS value, title AS name FROM role")
+  const man = await connection.promise().query("SELECT id AS value, CONCAT(first_name, ' ', last_name)  AS name FROM employee")
   inquirer
     .prompt([
       {
@@ -147,13 +137,15 @@ function addEmployee() {
         name: "lName"
       },
       {
-        type: "input",
-        message: "What is the employee's role ID number?",
+        type: "list",
+        message: "Choose Role?",
+        choices: role[0],
         name: "roleID"
       },
       {
-        type: "input",
-        message: "What is the employee's manager ID number?",
+        type: "list",
+        message: "Who is the Manager?",
+        choices: man[0],
         name: "managerID"
       }
     ])
@@ -167,23 +159,27 @@ function addEmployee() {
   
 };
 
-function updateEmployee() {
+async function updateEmployee() {
+  const role = await connection.promise().query("SELECT id AS value, title AS name FROM role")
+  const man = await connection.promise().query("SELECT id AS value, CONCAT(first_name, '' '', last_name)  AS name FROM employee")
   inquirer
     .prompt([
       {
-        type: "input",
-        message: "What is the ID of the employee you would like to update?",
+        type: "list",
+        message: "Choose Employee?",
+        choices: man[0],
         name: "employeeUpdate"
       },
 
       {
-        type: "input",
-        message: "Which new role would you like to assign?",
+        type: "list",
+        message: "Choose a Role?",
+        choices: role[0],
         name: "updateRole"
       }
     ])
     .then(function(answer) {
-      connection.query('UPDATE employee SET role_id=? WHERE employee_id= ?',[answer.updateRole, answer.employeeUpdate],function(err, res) {
+      connection.query('UPDATE employee SET role_id=? WHERE id= ?',[answer.updateRole, answer.employeeUpdate],function(err, res) {
         if (err) throw err;
         console.table(res);
         init();
@@ -191,9 +187,5 @@ function updateEmployee() {
     });
 };
 
-
 //initialization of app
 init();
-
-//export init function
-module.exports.init = init;
